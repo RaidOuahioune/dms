@@ -14,14 +14,12 @@ COPY src src
 RUN ./gradlew build -x test
 
 FROM eclipse-temurin:21-jre-alpine
-VOLUME /app/data
 WORKDIR /app
 
 # Copy the JAR file directly
 COPY --from=build /workspace/app/build/libs/*.jar /app/app.jar
 
-# Run as non-root user for better security
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
+# Create data directory with permissive permissions
+RUN mkdir -p /app/data && chmod 777 /app/data
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
