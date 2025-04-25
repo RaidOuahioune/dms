@@ -3,7 +3,9 @@ WORKDIR /workspace/app
 
 # Copy gradle files first for better layer caching
 COPY gradle gradle
-COPY build.gradle settings.gradle gradlew ./
+COPY build.gradle ./
+COPY settings.gradle ./
+COPY gradlew ./
 RUN chmod +x gradlew
 
 # Build dependency layer
@@ -17,9 +19,12 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 # Copy the JAR file directly
-COPY --from=build /workspace/app/build/libs/*.jar /app/app.jar
+COPY --from=build /workspace/app/build/libs/documents-0.0.1-SNAPSHOT.jar /app/app.jar
+
 
 # Create data directory with permissive permissions
 RUN mkdir -p /app/data && chmod 777 /app/data
 
+
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# ENTRYPOINT [ "ls", "-l", "/app/" ]

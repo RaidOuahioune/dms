@@ -1,5 +1,6 @@
 package com.example.workflow.controller;
 
+import com.example.workflow.dto.WorkflowInfoResponse;
 import com.example.workflow.dto.WorkflowInstanceDTO;
 import com.example.workflow.model.WorkflowStatus;
 import com.example.workflow.service.KafkaProducerService;
@@ -86,18 +87,18 @@ public class WorkflowController {
      * Get information about the current step and what's next in the workflow
      */
     @GetMapping("/document/{documentId}/workflow-info")
-    public ResponseEntity<Object> getWorkflowInfo(@PathVariable Long documentId) {
+    public ResponseEntity<WorkflowInfoResponse> getWorkflowInfo(@PathVariable Long documentId) {
         return workflowService.getWorkflowByDocumentId(documentId)
                 .map(workflow -> {
                     var status = workflow.getCurrentStatus();
                     var nextAction = getNextActionDescription(status);
                     
-                    var response = new Object() {
-                        public final Long documentId = workflow.getDocumentId();
-                        public final WorkflowStatus currentStatus = status;
-                        public final String nextActionDescription = nextAction;
-                        public final boolean isComplete = status == WorkflowStatus.PUBLISHED;
-                    };
+                    WorkflowInfoResponse response = new WorkflowInfoResponse(
+                        workflow.getDocumentId(),
+                        status,
+                        nextAction,
+                        status == WorkflowStatus.PUBLISHED
+                    );
                     
                     return ResponseEntity.ok(response);
                 })
