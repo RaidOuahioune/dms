@@ -12,7 +12,25 @@ services:
     depends_on:
       - documents-service
       - workflow-service
+      - auth-service
       - kafka
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - JWT_SECRET=YourJwtSecretKeyHereMakeItLongEnoughForHS256Algorithm
+      # Add any other environment variables your auth service needs
     networks:
       - microservices-net
     restart: unless-stopped
