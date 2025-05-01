@@ -3,6 +3,7 @@ package com.example.documents.controller;
 import com.example.documents.dto.DocumentDTO;
 import com.example.documents.dto.DocumentRequest;
 import com.example.documents.dto.response.ApiResponse;
+import com.example.documents.model.DocumentStatus;
 import com.example.documents.service.DocumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -44,7 +45,7 @@ public class DocumentController {
         String userId = authentication.getName();
         DocumentDTO createdDocument = documentService.createDocument(documentRequest, userId);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Document created successfully", createdDocument));
+                .body(ApiResponse.success("Document created successfully and sent for processing", createdDocument));
     }
     
     @PutMapping("/{id}")
@@ -95,5 +96,32 @@ public class DocumentController {
             @PathVariable String department) {
         List<DocumentDTO> documents = documentService.getDocumentsByDepartment(department);
         return ResponseEntity.ok(ApiResponse.success("Department documents retrieved successfully", documents));
+    }
+    
+    /**
+     * Get documents by status
+     */
+    @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('DOCTOR', 'ADMIN')")
+    public ResponseEntity<ApiResponse<List<DocumentDTO>>> getDocumentsByStatus(
+            @PathVariable DocumentStatus status) {
+        List<DocumentDTO> documents = documentService.getDocumentsByStatus(status);
+        return ResponseEntity.ok(ApiResponse.success(
+            String.format("Documents with status %s retrieved successfully", status), documents));
+    }
+    
+    /**
+     * Update document status manually (administrative function)
+     */
+    @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<DocumentDTO>> updateDocumentStatus(
+            @PathVariable UUID id,
+            @RequestParam DocumentStatus status,
+            @RequestBody(required = false) String metadata) {
+        
+        DocumentDTO updatedDocument = documentService.updateDocumentStatus(id, status, metadata);
+        return ResponseEntity.ok(ApiResponse.success(
+            String.format("Document status updated to %s successfully", status), updatedDocument));
     }
 }

@@ -46,12 +46,23 @@ public class Document {
     // Metadata fields
     private String department;
     private String specialty;
-    private String status; // e.g., "DRAFT", "FINAL", "ARCHIVED"
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private DocumentStatus status = DocumentStatus.PENDING; // Default to PENDING
+    
+    // Fields related to workflow
+    @Column
+    private String extractedMetadata; // Stores JSON data extracted by the Workflow service
+    
+    @Column
+    private LocalDateTime statusUpdatedAt; // Tracks when status was last updated
     
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
+        statusUpdatedAt = LocalDateTime.now();
     }
     
     @PreUpdate
