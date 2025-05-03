@@ -11,6 +11,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - documents-service
+      - workflow-service
       - auth-service
       - kafka
     networks:
@@ -28,8 +29,11 @@ services:
     environment:
       - PORT=3000
       - NODE_ENV=production
-      - JWT_SECRET=YourJwtSecretKeyHereMakeItLongEnoughForHS256Algorithm
+      - JWT_SECRET=d30ba7e816bd0817cefc8e57d583cbbcf5408dfb05ba56b3e2128767e5d6714e2c62369ca36f4db76ebc61273379eeca8e704e1010e49524f2276a09d2ed13f63db804f42537fae83db3ed32ca4fec6402a428e9991c182209dbae6badff1b661af41aabf9d032e4c4aa0e74ce4a515d53fc2dabc77c818933247a9cf494ce8b539f4118722c0cfdc8699561f2f160b93913744a44999e22c15838d471e196000c30a831f563be76eae4df3d38fbb535cc8f1d1441e3aa74fd1fa32ec2ce145e4cbf4eea6e3a9b7787230100f162ae417aa999092232d3cf92575dd4c1bef1345a46a54953eee6a25716b9815b9bccc26967f0420f6e660372e7309b5eff7bda
       # Add any other environment variables your auth service needs
+    volumes:
+      - ./auth:/usr/src/app
+      - /usr/src/app/node_modules
     networks:
       - microservices-net
     restart: unless-stopped
@@ -46,9 +50,52 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:sqlite:/app/data/documents.db
       - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - SPRING_PROFILES_ACTIVE=docker
-      - JWT_SECRET=YourJwtSecretKeyHereMakeItLongEnoughForHS256Algorithm
+      - JWT_SECRET=d30ba7e816bd0817cefc8e57d583cbbcf5408dfb05ba56b3e2128767e5d6714e2c62369ca36f4db76ebc61273379eeca8e704e1010e49524f2276a09d2ed13f63db804f42537fae83db3ed32ca4fec6402a428e9991c182209dbae6badff1b661af41aabf9d032e4c4aa0e74ce4a515d53fc2dabc77c818933247a9cf494ce8b539f4118722c0cfdc8699561f2f160b93913744a44999e22c15838d471e196000c30a831f563be76eae4df3d38fbb535cc8f1d1441e3aa74fd1fa32ec2ce145e4cbf4eea6e3a9b7787230100f162ae417aa999092232d3cf92575dd4c1bef1345a46a54953eee6a25716b9815b9bccc26967f0420f6e660372e7309b5eff7bda
     volumes:
       - documents-data:/app/data
+      - ./Documents:/app  # Mount the source directory for hot reloading
+    depends_on:
+      - kafka
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  # Workflow Service
+  workflow-service:
+    build:
+      context: ./Workflow
+      dockerfile: Dockerfile
+    container_name: workflow-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:sqlite:/app/data/workflow.db
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - SPRING_PROFILES_ACTIVE=docker
+    volumes:
+      - workflow-data:/app/data
+      - ./Workflow:/app  # Mount the source directory for hot reloading
+    depends_on:
+      - kafka
+      - documents-service
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+  # Extractor Service
+  extractor-service:
+    build:
+      context: ./extractor
+      dockerfile: Dockerfile
+    container_name: extractor-service
+    ports:
+      - "8000:8000"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    env_file:
+      - ./extractor/.env
+    volumes:
+      - ./extractor:/app  # Mount the source directory for hot reloading
     depends_on:
       - kafka
     networks:
@@ -108,3 +155,4 @@ networks:
 
 volumes:
   documents-data:
+  workflow-data:

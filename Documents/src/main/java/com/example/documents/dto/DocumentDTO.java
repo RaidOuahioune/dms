@@ -1,5 +1,6 @@
 package com.example.documents.dto;
 
+import com.example.documents.model.DocumentStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,5 +27,7 @@ public class DocumentDTO {
     private LocalDateTime updatedAt;
     private String department;
     private String specialty;
-    private String status;
+    private DocumentStatus status;
+    private String extractedMetadata;
+    private LocalDateTime statusUpdatedAt;
 }

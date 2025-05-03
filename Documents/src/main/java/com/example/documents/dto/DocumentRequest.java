@@ -1,5 +1,6 @@
 package com.example.documents.dto;
 
+import com.example.documents.model.DocumentStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -32,5 +33,5 @@ public class DocumentRequest {
     
     private String department;
     private String specialty;
-    private String status;
+    private DocumentStatus status;
 }

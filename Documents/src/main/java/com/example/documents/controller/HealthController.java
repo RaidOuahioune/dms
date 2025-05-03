@@ -20,6 +20,6 @@ public class HealthController {
         healthDetails.put("service", "Documents Service");
         healthDetails.put("version", "1.0.0");
         
-        return ResponseEntity.ok(ApiResponse.success("Service is healthy", healthDetails));
+        return ResponseEntity.ok(ApiResponse.success("Service is healthy from raid", healthDetails));
     }
 }
