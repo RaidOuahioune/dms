@@ -1,19 +1,22 @@
-FROM eclipse-temurin:21-jdk as build
+FROM eclipse-temurin:21-jdk-alpine
 WORKDIR /app
 
+# Install necessary tools
+RUN apk add --no-cache gradle
+
+# Copy project files
 COPY . .
-RUN ./gradlew build -x test --no-daemon
+RUN chmod +x gradlew
 
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-
-# Copy the executable JAR file from the build stage and rename it to app.jar
-# Exclude potential '-plain.jar' if present
-COPY --from=build /app/build/libs/workflow-0.0.1-SNAPSHOT.jar /app/app.jar
-
-# Create directory for storing SQLite database
-RUN mkdir -p /app/data
-VOLUME /app/data
-
+# Expose port
 EXPOSE 8083
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+
+# Create data directory
+RUN mkdir -p /app/data && chmod 777 /app/data
+
+# Set environment variables for DevTools
+ENV SPRING_DEVTOOLS_RESTART_ENABLED=true
+ENV SPRING_DEVTOOLS_LIVERELOAD_ENABLED=true
+
+# Command to run the application in development mode
+CMD ["./gradlew", "bootRun"]
