@@ -82,6 +82,26 @@ services:
       - microservices-net
     restart: unless-stopped
 
+  # Extractor Service
+  extractor-service:
+    build:
+      context: ./extractor
+      dockerfile: Dockerfile
+    container_name: extractor-service
+    ports:
+      - "8000:8000"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    env_file:
+      - ./extractor/.env
+    volumes:
+      - ./extractor:/app  # Mount the source directory for hot reloading
+    depends_on:
+      - kafka
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
   # Kafka for Message Broker
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1
