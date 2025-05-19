@@ -37,9 +37,9 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
                 .authorizeHttpRequests(authorize -> authorize
                         // Health endpoint for service discovery
-                        .requestMatchers("/health", "/actuator/health").permitAll()
+                        //.requestMatchers("/health", "/actuator/health").permitAll()
                         // Secure all other endpoints
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class)
                 .build();

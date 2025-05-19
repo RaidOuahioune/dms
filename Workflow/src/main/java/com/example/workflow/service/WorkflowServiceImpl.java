@@ -61,13 +61,12 @@ public class WorkflowServiceImpl implements WorkflowService {
                 "Document rejected during workflow validation step"
             );
             log.info("Published document rejected event for document ID: {}", workflow.getDocumentId());
-        } else if (newStatus == WorkflowStatus.PUBLISHED && previousStatus == WorkflowStatus.VALIDATED) {
-            // Additional notification can be sent when a validated document is published
-            kafkaProducerService.publishDocumentValidated(
-                workflow.getDocumentId(), 
-                "{}" // Empty data as we no longer store extraction data
+        } else if (newStatus == WorkflowStatus.PUBLISHED) {
+            kafkaProducerService.publishDocumentPublished(
+                workflow.getDocumentId(),
+                "{}" // Empty metadata
             );
-            log.info("Published document validated event for document ID: {}", workflow.getDocumentId());
+            log.info("Published document published event for document ID: {}", workflow.getDocumentId());
         }
         
         return workflowRepository.save(workflow);
@@ -114,6 +113,8 @@ public class WorkflowServiceImpl implements WorkflowService {
                     workflow.setCurrentStatus(WorkflowStatus.PUBLISHED);
                     // Notify Documents service that the document is validated and ready
                     kafkaProducerService.publishDocumentValidated(documentId, "{}");
+                    // Also publish the document
+                    kafkaProducerService.publishDocumentPublished(documentId, "{}");
                     log.info("Document ID: {} automatically published as it was created directly", documentId);
                 }
                 break;
@@ -148,6 +149,8 @@ public class WorkflowServiceImpl implements WorkflowService {
             case VALIDATED:
                 // Move to published state after validation
                 workflow.setCurrentStatus(WorkflowStatus.PUBLISHED);
+                // Send the published event
+                kafkaProducerService.publishDocumentPublished(documentId, "{}");
                 log.info("Document ID: {} has been published after validation", documentId);
                 break;
                 

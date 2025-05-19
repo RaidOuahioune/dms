@@ -28,9 +28,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateToken(jwt)) {
                 Authentication authentication = jwtTokenProvider.getAuthentication(jwt);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.debug("Set Authentication to SecurityContext for '{}', uri: {}",
-                        authentication.getName(), request.getRequestURI());
+                if (authentication != null) {
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("Set Authentication to SecurityContext for '{}', uri: {}",
+                            authentication.getName(), request.getRequestURI());
+                } else {
+                    log.warn("Valid JWT token but authentication is null for URI: {}", request.getRequestURI());
+                }
             }
         } catch (Exception ex) {
             log.error("Could not set user authentication in security context", ex);

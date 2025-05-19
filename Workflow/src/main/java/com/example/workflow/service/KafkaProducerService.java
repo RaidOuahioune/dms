@@ -13,6 +13,7 @@ public class KafkaProducerService {
     private static final String TOPIC_DOCUMENT_FIELDS_EXTRACTED = "document-fields-extracted";
     private static final String TOPIC_DOCUMENT_VALIDATED = "document-validated";
     private static final String TOPIC_DOCUMENT_REJECTED = "document-rejected";
+    private static final String TOPIC_DOCUMENT_PUBLISHED = "document-published";
     
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
@@ -32,6 +33,12 @@ public class KafkaProducerService {
         log.info("Publishing document rejected event for document ID: {}", documentId);
         kafkaTemplate.send(TOPIC_DOCUMENT_REJECTED, String.valueOf(documentId),
                 new DocumentStatusEvent(documentId, "REJECTED", reason));
+    }
+    
+    public void publishDocumentPublished(Long documentId, String metadata) {
+        log.info("Publishing document published event for document ID: {}", documentId);
+        kafkaTemplate.send(TOPIC_DOCUMENT_PUBLISHED, String.valueOf(documentId),
+                new DocumentStatusEvent(documentId, "PUBLISHED", metadata));
     }
     
     // Event classes

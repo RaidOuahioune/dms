@@ -36,8 +36,13 @@ public class DocumentEventListener {
         
         documentRepository.findById(event.getDocumentId()).ifPresentOrElse(
             document -> {
-                document.setStatus(DocumentStatus.PROCESSING);
-                document.setExtractedMetadata(event.getData());
+                document.setStatus(DocumentStatus.PENDING); // Use PENDING instead of PROCESSING
+                
+                // Store extracted data in description field since Document model doesn't have extractedMetadata field
+                String currentDescription = document.getDescription() != null ? document.getDescription() : "";
+                String newDescription = currentDescription + "\n\n--- EXTRACTED DATA ---\n" + event.getData();
+                document.setDescription(newDescription);
+                
                 document.setStatusUpdatedAt(LocalDateTime.now());
                 documentRepository.save(document);
                 log.info("Updated document {} with extracted fields", event.getDocumentId());
@@ -62,7 +67,10 @@ public class DocumentEventListener {
                 // If there's additional validated data, update the document
                 if (event.getData() != null && !event.getData().isEmpty() 
                         && !event.getData().equals("{}")) {
-                    document.setExtractedMetadata(event.getData());
+                    // Store validated data in description field
+                    String currentDescription = document.getDescription() != null ? document.getDescription() : "";
+                    String newDescription = currentDescription + "\n\n--- VALIDATED DATA ---\n" + event.getData();
+                    document.setDescription(newDescription);
                 }
                 
                 documentRepository.save(document);
@@ -101,10 +109,10 @@ public class DocumentEventListener {
         
         documentRepository.findById(event.getDocumentId()).ifPresentOrElse(
             document -> {
-                document.setStatus(DocumentStatus.PUBLISHED);
+                document.setStatus(DocumentStatus.VALIDATED); // Use VALIDATED instead of PUBLISHED
                 document.setStatusUpdatedAt(LocalDateTime.now());
                 documentRepository.save(document);
-                log.info("Updated document {} status to PUBLISHED", event.getDocumentId());
+                log.info("Updated document {} status to VALIDATED (from publish event)", event.getDocumentId());
             },
             () -> log.error("Document with ID {} not found", event.getDocumentId())
         );

@@ -2,17 +2,23 @@ package com.example.documents.service;
 
 import com.example.documents.dto.DocumentDTO;
 import com.example.documents.dto.DocumentRequest;
+import com.example.documents.dto.ExtractionRequestDTO;
 import com.example.documents.model.Document;
 import com.example.documents.model.DocumentStatus;
 import com.example.documents.repository.DocumentRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,12 +29,16 @@ import java.util.stream.Collectors;
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentRepository documentRepository;
-    private final KafkaTemplate<String, DocumentDTO> kafkaTemplate;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+    private final WordDocumentProcessingService wordDocumentProcessingService;
+    private final ObjectMapper objectMapper;
     
     private static final String TOPIC_DOCUMENT_CREATED = "document-created";
     private static final String TOPIC_DOCUMENT_UPDATED = "document-updated";
     private static final String TOPIC_DOCUMENT_DELETED = "document-deleted";
     private static final String TOPIC_DOCUMENT_UPLOADED = "document-uploaded";
+    // Kafka topic for sending medical documents for extraction
+    private static final String TOPIC_MEDICAL_DOCUMENT_FOR_EXTRACTION = "medical-document-for-extraction";
 
     @Override
     public List<DocumentDTO> getAllDocuments() {
@@ -52,15 +62,13 @@ public class DocumentServiceImpl implements DocumentService {
         
         Document document = Document.builder()
                 .title(documentRequest.getTitle())
-                .content(documentRequest.getContent())
-                .type(documentRequest.getType())
                 .patientId(documentRequest.getPatientId())
-                .doctorId(documentRequest.getDoctorId() != null ? documentRequest.getDoctorId() : createdByUserId)
-                .department(documentRequest.getDepartment())
-                .specialty(documentRequest.getSpecialty())
+                .diagnosis(documentRequest.getDiagnosis())
+                .procedureDate(documentRequest.getProcedureDate())
+                .doctorIds(documentRequest.getDoctorIds())
+                .description(documentRequest.getDescription())
                 // Always start with PENDING, workflow service will update status
-                .status(DocumentStatus.PENDING)
-                .statusUpdatedAt(LocalDateTime.now())
+                .status(documentRequest.getStatus() != null ? documentRequest.getStatus() : DocumentStatus.PENDING)
                 .build();
                 
         Document savedDocument = documentRepository.save(document);
@@ -85,12 +93,11 @@ public class DocumentServiceImpl implements DocumentService {
                 .orElseThrow(() -> new EntityNotFoundException("Document not found with ID: " + id));
                 
         document.setTitle(documentRequest.getTitle());
-        document.setContent(documentRequest.getContent());
-        document.setType(documentRequest.getType());
         document.setPatientId(documentRequest.getPatientId());
-        document.setDoctorId(documentRequest.getDoctorId());
-        document.setDepartment(documentRequest.getDepartment());
-        document.setSpecialty(documentRequest.getSpecialty());
+        document.setDiagnosis(documentRequest.getDiagnosis());
+        document.setProcedureDate(documentRequest.getProcedureDate());
+        document.setDoctorIds(documentRequest.getDoctorIds());
+        document.setDescription(documentRequest.getDescription());
         
         // Only allow status updates if they're valid transitions or coming from an admin
         if (documentRequest.getStatus() != null) {
@@ -133,23 +140,28 @@ public class DocumentServiceImpl implements DocumentService {
 
     @Override
     public List<DocumentDTO> getDocumentsByDoctorId(String doctorId) {
-        return documentRepository.findByDoctorId(doctorId).stream()
+        // Since we removed the custom repository method, we'll filter manually
+        return documentRepository.findAll().stream()
+                .filter(doc -> doc.getDoctorIds() != null && doc.getDoctorIds().contains(doctorId))
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<DocumentDTO> getDocumentsByType(String type) {
-        return documentRepository.findByType(type).stream()
+        // Since the Document model doesn't have a type field, we'll use the diagnosis field as a substitute
+        // This is a workaround to maintain compatibility with the existing API
+        return documentRepository.findByDiagnosis(type).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<DocumentDTO> getDocumentsByDepartment(String department) {
-        return documentRepository.findByDepartment(department).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+        // Since Document model doesn't have a department field, we'll return all documents
+        // This is a placeholder implementation
+        log.warn("Department filtering not supported in current Document model");
+        return getAllDocuments();
     }
 
     @Override
@@ -169,10 +181,7 @@ public class DocumentServiceImpl implements DocumentService {
             document.setStatus(status);
             document.setStatusUpdatedAt(LocalDateTime.now());
             
-            // Update metadata if provided
-            if (metadata != null && !metadata.isEmpty()) {
-                document.setExtractedMetadata(metadata);
-            }
+            // We don't update any metadata as the Document model doesn't have that field
             
             Document updatedDocument = documentRepository.save(document);
             return mapToDTO(updatedDocument);
@@ -187,38 +196,23 @@ public class DocumentServiceImpl implements DocumentService {
      * Check if a status transition is valid based on workflow rules
      */
     private boolean isValidStatusTransition(DocumentStatus currentStatus, DocumentStatus newStatus) {
+        // Allow same status (no change)
         if (currentStatus == newStatus) {
-            return true; // No change
+            return true;
         }
         
-        // Define allowed transitions
+        // Define allowed transitions based on current status
         switch (currentStatus) {
             case PENDING:
-                return newStatus == DocumentStatus.PROCESSING 
-                    || newStatus == DocumentStatus.REJECTED
-                    || newStatus == DocumentStatus.VALIDATED; // Direct validation for simple docs
-                
-            case PROCESSING:
+                // From PENDING, can move to VALIDATED or REJECTED
                 return newStatus == DocumentStatus.VALIDATED 
                     || newStatus == DocumentStatus.REJECTED;
-                
             case VALIDATED:
-                return newStatus == DocumentStatus.PUBLISHED 
-                    || newStatus == DocumentStatus.ARCHIVED;
-                
-            case PUBLISHED:
-                return newStatus == DocumentStatus.ARCHIVED;
-                
+                // From VALIDATED, can move to REJECTED if needed
+                return newStatus == DocumentStatus.REJECTED;
             case REJECTED:
-                return newStatus == DocumentStatus.PENDING; // Allow reprocessing
-                
-            case DRAFT:
-                return true; // Drafts can transition to any state
-                
-            case ARCHIVED:
-                // Archived is a terminal state
-                return false;
-                
+                // From REJECTED, can move back to PENDING for reconsideration
+                return newStatus == DocumentStatus.PENDING;
             default:
                 return false;
         }
@@ -228,17 +222,76 @@ public class DocumentServiceImpl implements DocumentService {
         return DocumentDTO.builder()
                 .id(document.getId())
                 .title(document.getTitle())
-                .content(document.getContent())
-                .type(document.getType())
                 .patientId(document.getPatientId())
-                .doctorId(document.getDoctorId())
+                .diagnosis(document.getDiagnosis())
                 .createdAt(document.getCreatedAt())
                 .updatedAt(document.getUpdatedAt())
-                .department(document.getDepartment())
-                .specialty(document.getSpecialty())
-                .status(document.getStatus())
-                .extractedMetadata(document.getExtractedMetadata())
                 .statusUpdatedAt(document.getStatusUpdatedAt())
+                .procedureDate(document.getProcedureDate())
+                .doctorIds(document.getDoctorIds())
+                .description(document.getDescription())
+                .status(document.getStatus())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public DocumentDTO uploadMedicalDocument(MultipartFile file, String patientId, String doctorId, String diagnosis) throws IOException {
+        log.info("Processing medical document upload for patient: {}, doctor: {}, diagnosis: {}", patientId, doctorId, diagnosis);
+        
+        // Extract text content from document
+        String content = wordDocumentProcessingService.extractText(file);
+        String originalFilename = file.getOriginalFilename() != null ? file.getOriginalFilename() : "unknown.docx";
+        
+        // Create document entity
+        Document document = Document.builder()
+                .title("Medical Document - " + originalFilename)
+                .patientId(patientId)
+                .diagnosis(diagnosis)
+                .description(content) // Store content in description field
+                .doctorIds(doctorId) // Store doctor ID in doctorIds field
+                .procedureDate(LocalDateTime.now())
+                .status(DocumentStatus.PENDING)
+                .build();
+        
+        Document savedDocument = documentRepository.save(document);
+        DocumentDTO documentDTO = mapToDTO(savedDocument);
+        
+        // Create extraction request for AI processing
+        ExtractionRequestDTO extractionRequest = ExtractionRequestDTO.builder()
+                .documentId(documentDTO.getId())
+                .content(documentDTO.getDescription()) // Use description as content
+                .build();
+        
+        // Send to Kafka for AI extraction processing
+        log.info("Publishing medical document to extraction topic, document ID: {}", documentDTO.getId());
+        kafkaTemplate.send(TOPIC_MEDICAL_DOCUMENT_FOR_EXTRACTION, documentDTO.getId().toString(), extractionRequest);
+        
+        // Also send the regular document uploaded event to trigger workflow
+        kafkaTemplate.send(TOPIC_DOCUMENT_UPLOADED, documentDTO);
+        
+        return documentDTO;
+    }
+
+    @Override
+    public List<String> extractDoctorIdsFromDocument(DocumentDTO document) {
+        List<String> doctorIds = new ArrayList<>();
+
+        try {
+            // Parse the comma-separated doctorIds string into a list
+            if (document.getDoctorIds() != null && !document.getDoctorIds().isBlank()) {
+                String[] ids = document.getDoctorIds().split(",");
+                for (String id : ids) {
+                    String trimmedId = id.trim();
+                    if (!trimmedId.isEmpty()) {
+                        doctorIds.add(trimmedId);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error parsing doctor IDs from document {}: {}", document.getId(), e.getMessage());
+        }
+
+        return doctorIds;
     }
 }

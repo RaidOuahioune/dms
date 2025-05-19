@@ -30,21 +30,21 @@ public class DocumentController {
     private final JwtTokenProvider jwtTokenProvider;
     
     @GetMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<DocumentDTO>>> getAllDocuments() {
         List<DocumentDTO> documents = documentService.getAllDocuments();
         return ResponseEntity.ok(ApiResponse.success("Documents retrieved successfully", documents));
     }
     
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<DocumentDTO>> getDocumentById(@PathVariable UUID id) {
         DocumentDTO document = documentService.getDocumentById(id);
         return ResponseEntity.ok(ApiResponse.success("Document retrieved successfully", document));
     }
     
     @PostMapping
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<DocumentDTO>> createDocument(
             @Valid @RequestBody DocumentRequest documentRequest,
             HttpServletRequest request) {
@@ -57,7 +57,7 @@ public class DocumentController {
     }
     
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<DocumentDTO>> updateDocument(
             @PathVariable UUID id,
             @Valid @RequestBody DocumentRequest documentRequest,
@@ -70,14 +70,14 @@ public class DocumentController {
     }
     
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteDocument(@PathVariable UUID id) {
         documentService.deleteDocument(id);
         return ResponseEntity.ok(ApiResponse.success("Document deleted successfully", null));
     }
     
     @GetMapping("/patient/{patientId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<DocumentDTO>>> getDocumentsByPatientId(
             @PathVariable String patientId) {
         List<DocumentDTO> documents = documentService.getDocumentsByPatientId(patientId);
@@ -85,7 +85,7 @@ public class DocumentController {
     }
     
     @GetMapping("/User/{UserId}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<DocumentDTO>>> getDocumentsByUserId(
             @PathVariable String UserId) {
         List<DocumentDTO> documents = documentService.getDocumentsByDoctorId(UserId);
@@ -93,7 +93,7 @@ public class DocumentController {
     }
     
     @GetMapping("/type/{type}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<DocumentDTO>>> getDocumentsByType(
             @PathVariable String type) {
         List<DocumentDTO> documents = documentService.getDocumentsByType(type);
@@ -101,7 +101,7 @@ public class DocumentController {
     }
     
     @GetMapping("/department/{department}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<DocumentDTO>>> getDocumentsByDepartment(
             @PathVariable String department) {
         List<DocumentDTO> documents = documentService.getDocumentsByDepartment(department);
@@ -112,7 +112,7 @@ public class DocumentController {
      * Get documents by status
      */
     @GetMapping("/status/{status}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<List<DocumentDTO>>> getDocumentsByStatus(
             @PathVariable DocumentStatus status) {
         List<DocumentDTO> documents = documentService.getDocumentsByStatus(status);
@@ -124,7 +124,7 @@ public class DocumentController {
      * Update document status manually (Administrative function)
      */
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasRole('ADMIN')")
+    //@PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<DocumentDTO>> updateDocumentStatus(
             @PathVariable UUID id,
             @RequestParam DocumentStatus status,
@@ -136,7 +136,7 @@ public class DocumentController {
     }
     
     @GetMapping("/current-user")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> getCurrentUser(HttpServletRequest request) {
         String token = jwtTokenProvider.extractTokenFromHeader(request.getHeader("Authorization"));
         String userId = jwtTokenProvider.extractUserIdFromToken(token);

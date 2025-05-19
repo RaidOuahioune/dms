@@ -19,15 +19,13 @@ import java.util.UUID;
 public class DocumentDTO {
     private UUID id;
     private String title;
-    private String content;
-    private String type;
     private String patientId;
-    private String doctorId;
+    private String diagnosis;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private String department;
-    private String specialty;
-    private DocumentStatus status;
-    private String extractedMetadata;
     private LocalDateTime statusUpdatedAt;
+    private LocalDateTime procedureDate;
+    private String doctorIds; // Comma-separated list of doctor IDs
+    private String description; // HTML content that may also contain the document's content
+    private DocumentStatus status;
 }
