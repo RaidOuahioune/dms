@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * Document entity representing medical documents in the system
+ */
 @Entity
 @Table(name = "documents")
 @Data
@@ -24,39 +27,37 @@ public class Document {
     @Column(nullable = false)
     private String title;
     
+    @Column
+    private String patientId; // Reference to Patient in patient service, nullable as requested
+    
     @Column(columnDefinition = "TEXT")
-    private String content;
+    private String diagnosis;
     
-    @Column(nullable = false)
-    private String type; // e.g., "MEDICAL_RECORD", "LAB_RESULT", "PRESCRIPTION"
-    
-    // External references - avoiding content coupling by using IDs instead of entities
-    @Column(nullable = false)
-    private String patientId; // Reference to Patient in patient service
-    
-    @Column(nullable = false)
-    private String doctorId; // Reference to Doctor in doctor/auth service
-    
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "created_at")
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
     
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    // Metadata fields
-    private String department;
-    private String specialty;
+    @Column(name = "procedure_date")
+    private LocalDateTime procedureDate;
+    
+    // Store doctor IDs as a comma-separated string that can be parsed to a list
+    @Column(name = "doctor_ids", columnDefinition = "TEXT")
+    private String doctorIds; // Nullable as requested
+    
+  
+    @Column(columnDefinition = "TEXT")
+    private String description; // HTML content
     
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private DocumentStatus status = DocumentStatus.PENDING; // Default to PENDING
-    
-    // Fields related to workflow
     @Column
-    private String extractedMetadata; // Stores JSON data extracted by the Workflow service
+    @Builder.Default
+    private DocumentStatus status = DocumentStatus.PENDING; // Default to PENDING, nullable as requested
     
-    @Column
-    private LocalDateTime statusUpdatedAt; // Tracks when status was last updated
+    @Column(name = "status_updated_at")
+    private LocalDateTime statusUpdatedAt; // Tracks when the status was last updated
     
     @PrePersist
     protected void onCreate() {

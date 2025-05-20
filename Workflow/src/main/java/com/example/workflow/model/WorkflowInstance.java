@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "workflow_instances")
@@ -15,11 +16,12 @@ import java.time.LocalDateTime;
 public class WorkflowInstance {
     
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue
+    @Column(columnDefinition = "TEXT")
+    private UUID id;
     
-    @Column(nullable = false)
-    private Long documentId;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private UUID documentId;
     
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

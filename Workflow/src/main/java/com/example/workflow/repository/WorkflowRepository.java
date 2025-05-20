@@ -7,13 +7,14 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
-public interface WorkflowRepository extends JpaRepository<WorkflowInstance, Long> {
+public interface WorkflowRepository extends JpaRepository<WorkflowInstance, UUID> {
     
-    Optional<WorkflowInstance> findByDocumentId(Long documentId);
+    Optional<WorkflowInstance> findByDocumentId(UUID documentId);
     
     List<WorkflowInstance> findByCurrentStatus(WorkflowStatus status);
     
-    List<WorkflowInstance> findByDocumentIdIn(List<Long> documentIds);
+    List<WorkflowInstance> findByDocumentIdIn(List<UUID> documentIds);
 }
