@@ -1,5 +1,7 @@
 package com.example.workflow.dto;
 
+import java.util.UUID;
+
 import com.example.workflow.model.WorkflowStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class WorkflowInfoResponse {
-    private Long documentId;
+    private UUID documentId;
     private WorkflowStatus currentStatus;
     private String nextActionDescription;
     private boolean isComplete;

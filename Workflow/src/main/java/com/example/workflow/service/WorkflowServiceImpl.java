@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +25,7 @@ public class WorkflowServiceImpl implements WorkflowService {
 
     @Override
     @Transactional
-    public WorkflowInstance createWorkflow(Long documentId, WorkflowType workflowType) {
+    public WorkflowInstance createWorkflow(UUID documentId, WorkflowType workflowType) {
         WorkflowInstance workflow = new WorkflowInstance();
         workflow.setDocumentId(documentId);
         workflow.setWorkflowType(workflowType);
@@ -41,7 +42,7 @@ public class WorkflowServiceImpl implements WorkflowService {
 
     @Override
     @Transactional
-    public WorkflowInstance updateWorkflowStatus(Long workflowId, WorkflowStatus newStatus) {
+    public WorkflowInstance updateWorkflowStatus(UUID workflowId, WorkflowStatus newStatus) {
         WorkflowInstance workflow = workflowRepository.findById(workflowId)
                 .orElseThrow(() -> new EntityNotFoundException("Workflow with ID " + workflowId + " not found"));
         
@@ -52,7 +53,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         if (newStatus == WorkflowStatus.VALIDATED) {
             kafkaProducerService.publishDocumentValidated(
                 workflow.getDocumentId(), 
-                "{}" // Empty data as we no longer store extraction data
+                "{}" // Empty data as we no UUIDer store extraction data
             );
             log.info("Published document validated event for document ID: {}", workflow.getDocumentId());
         } else if (newStatus == WorkflowStatus.REJECTED) {
@@ -74,7 +75,7 @@ public class WorkflowServiceImpl implements WorkflowService {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<WorkflowInstance> getWorkflowByDocumentId(Long documentId) {
+    public Optional<WorkflowInstance> getWorkflowByDocumentId(UUID documentId) {
         return workflowRepository.findByDocumentId(documentId);
     }
 
@@ -98,7 +99,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     
     @Override
     @Transactional
-    public WorkflowInstance processNextStep(Long documentId, String actionData) {
+    public WorkflowInstance processNextStep(UUID documentId, String actionData) {
         WorkflowInstance workflow = workflowRepository.findByDocumentId(documentId)
                 .orElseThrow(() -> new EntityNotFoundException("Workflow for document ID " + documentId + " not found"));
         

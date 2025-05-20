@@ -7,14 +7,15 @@ import com.example.workflow.model.WorkflowType;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface WorkflowService {
     
-    WorkflowInstance createWorkflow(Long documentId, WorkflowType workflowType);
+    WorkflowInstance createWorkflow(UUID documentId, WorkflowType workflowType);
     
-    WorkflowInstance updateWorkflowStatus(Long workflowId, WorkflowStatus newStatus);
+    WorkflowInstance updateWorkflowStatus(UUID workflowId, WorkflowStatus newStatus);
     
-    Optional<WorkflowInstance> getWorkflowByDocumentId(Long documentId);
+    Optional<WorkflowInstance> getWorkflowByDocumentId(UUID documentId);
     
     List<WorkflowInstance> getWorkflowsByStatus(WorkflowStatus status);
     
@@ -26,5 +27,5 @@ public interface WorkflowService {
      * @param actionData Optional data needed for the next step (e.g., validation data)
      * @return Updated workflow instance after processing the next step
      */
-    WorkflowInstance processNextStep(Long documentId, String actionData);
+    WorkflowInstance processNextStep(UUID documentId, String actionData);
 }

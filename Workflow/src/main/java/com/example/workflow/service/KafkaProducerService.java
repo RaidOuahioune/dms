@@ -3,6 +3,8 @@ package com.example.workflow.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
+// UUID import java.util.UUID;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,31 +19,31 @@ public class KafkaProducerService {
     
     private final KafkaTemplate<String, Object> kafkaTemplate;
     
-    public void publishExtractedFields(Long documentId, String extractedData) {
+    public void publishExtractedFields(UUID documentId, String extractedData) {
         log.info("Publishing extracted fields for document ID: {}", documentId);
         kafkaTemplate.send(TOPIC_DOCUMENT_FIELDS_EXTRACTED, String.valueOf(documentId), 
                 new DocumentFieldsEvent(documentId, extractedData));
     }
     
-    public void publishDocumentValidated(Long documentId, String validatedData) {
+    public void publishDocumentValidated(UUID documentId, String validatedData) {
         log.info("Publishing document validated event for document ID: {}", documentId);
         kafkaTemplate.send(TOPIC_DOCUMENT_VALIDATED, String.valueOf(documentId),
                 new DocumentStatusEvent(documentId, "VALIDATED", validatedData));
     }
     
-    public void publishDocumentRejected(Long documentId, String reason) {
+    public void publishDocumentRejected(UUID documentId, String reason) {
         log.info("Publishing document rejected event for document ID: {}", documentId);
         kafkaTemplate.send(TOPIC_DOCUMENT_REJECTED, String.valueOf(documentId),
                 new DocumentStatusEvent(documentId, "REJECTED", reason));
     }
     
-    public void publishDocumentPublished(Long documentId, String metadata) {
+    public void publishDocumentPublished(UUID documentId, String metadata) {
         log.info("Publishing document published event for document ID: {}", documentId);
         kafkaTemplate.send(TOPIC_DOCUMENT_PUBLISHED, String.valueOf(documentId),
                 new DocumentStatusEvent(documentId, "PUBLISHED", metadata));
     }
     
     // Event classes
-    public record DocumentFieldsEvent(Long documentId, String extractedFields) {}
-    public record DocumentStatusEvent(Long documentId, String status, String data) {}
+    public record DocumentFieldsEvent(UUID documentId, String extractedFields) {}
+    public record DocumentStatusEvent(UUID documentId, String status, String data) {}
 }

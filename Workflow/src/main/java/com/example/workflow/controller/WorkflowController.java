@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -22,7 +23,7 @@ public class WorkflowController {
     private final KafkaProducerService kafkaProducerService;
     
     @GetMapping("/document/{documentId}")
-    public ResponseEntity<WorkflowInstanceDTO> getWorkflowByDocumentId(@PathVariable Long documentId) {
+    public ResponseEntity<WorkflowInstanceDTO> getWorkflowByDocumentId(@PathVariable UUID documentId) {
         return workflowService.getWorkflowByDocumentId(documentId)
                 .map(workflow -> ResponseEntity.ok(workflowService.convertToDTO(workflow)))
                 .orElse(ResponseEntity.notFound().build());
@@ -39,19 +40,19 @@ public class WorkflowController {
     }
     
     @PutMapping("/{workflowId}/validate")
-    public ResponseEntity<WorkflowInstanceDTO> validateDocumentFields(@PathVariable Long workflowId) {
+    public ResponseEntity<WorkflowInstanceDTO> validateDocumentFields(@PathVariable UUID workflowId) {
         var updatedWorkflow = workflowService.updateWorkflowStatus(workflowId, WorkflowStatus.VALIDATED);
         return ResponseEntity.ok(workflowService.convertToDTO(updatedWorkflow));
     }
     
     @PutMapping("/{workflowId}/publish")
-    public ResponseEntity<WorkflowInstanceDTO> publishDocument(@PathVariable Long workflowId) {
+    public ResponseEntity<WorkflowInstanceDTO> publishDocument(@PathVariable UUID workflowId) {
         var updatedWorkflow = workflowService.updateWorkflowStatus(workflowId, WorkflowStatus.PUBLISHED);
         return ResponseEntity.ok(workflowService.convertToDTO(updatedWorkflow));
     }
     
     @PutMapping("/{workflowId}/reject")
-    public ResponseEntity<WorkflowInstanceDTO> rejectDocument(@PathVariable Long workflowId) {
+    public ResponseEntity<WorkflowInstanceDTO> rejectDocument(@PathVariable UUID workflowId) {
         var updatedWorkflow = workflowService.updateWorkflowStatus(workflowId, WorkflowStatus.REJECTED);
         return ResponseEntity.ok(workflowService.convertToDTO(updatedWorkflow));
     }
@@ -61,7 +62,7 @@ public class WorkflowController {
      */
     @PostMapping("/document/{documentId}/extracted-data")
     public ResponseEntity<WorkflowInstanceDTO> sendExtractedData(
-            @PathVariable Long documentId, 
+            @PathVariable UUID documentId, 
             @RequestBody String extractedData) {
         
         // Send extracted data to Documents service
@@ -77,7 +78,7 @@ public class WorkflowController {
      */
     @PostMapping("/document/{documentId}/next")
     public ResponseEntity<WorkflowInstanceDTO> processNextStep(
-            @PathVariable Long documentId,
+            @PathVariable UUID documentId,
             @RequestBody(required = false) String actionData) {
         var updatedWorkflow = workflowService.processNextStep(documentId, actionData);
         return ResponseEntity.ok(workflowService.convertToDTO(updatedWorkflow));
@@ -87,7 +88,7 @@ public class WorkflowController {
      * Get information about the current step and what's next in the workflow
      */
     @GetMapping("/document/{documentId}/workflow-info")
-    public ResponseEntity<WorkflowInfoResponse> getWorkflowInfo(@PathVariable Long documentId) {
+    public ResponseEntity<WorkflowInfoResponse> getWorkflowInfo(@PathVariable UUID documentId) {
         return workflowService.getWorkflowByDocumentId(documentId)
                 .map(workflow -> {
                     var status = workflow.getCurrentStatus();
